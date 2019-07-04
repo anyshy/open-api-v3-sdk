@@ -75,6 +75,7 @@ func (client *Client) GetSpotOrders(status, instrument_id string, options *map[s
 	fullOptions := NewParams()
 	fullOptions["instrument_id"] = instrument_id
 	fullOptions["status"] = status
+	fullOptions["state"] = status
 	if options != nil && len(*options) > 0 {
 		fullOptions["from"] = (*options)["from"]
 		fullOptions["to"] = (*options)["to"]

@@ -10,15 +10,15 @@ package okex
 import (
 	"bytes"
 	"compress/flate"
-	"github.com/gorilla/websocket"
 	"io/ioutil"
 
+	"github.com/gorilla/websocket"
+
 	"log"
-	"os"
-	"os/signal"
+	// "os"
+	// "os/signal"
 	"runtime/debug"
 	"sync"
-	"syscall"
 	"time"
 )
 
@@ -27,12 +27,12 @@ type OKWSAgent struct {
 	config  *Config
 	conn    *websocket.Conn
 
-	wsEvtCh  chan interface{}
-	wsErrCh  chan interface{}
-	wsTbCh   chan interface{}
-	stopCh   chan interface{}
-	errCh    chan error
-	signalCh chan os.Signal
+	wsEvtCh chan interface{}
+	wsErrCh chan interface{}
+	wsTbCh  chan interface{}
+	stopCh  chan interface{}
+	errCh   chan error
+	// signalCh chan os.Signal
 
 	subMap         map[string][]ReceivedDataCallback
 	activeChannels map[string]bool
@@ -59,12 +59,12 @@ func (a *OKWSAgent) Start(config *Config) error {
 		a.wsTbCh = make(chan interface{})
 		a.errCh = make(chan error)
 		a.stopCh = make(chan interface{}, 16)
-		a.signalCh = make(chan os.Signal)
+		// a.signalCh = make(chan os.Signal)
 		a.activeChannels = make(map[string]bool)
 		a.subMap = make(map[string][]ReceivedDataCallback)
 		a.hotDepthsMap = make(map[string]*WSHotDepths)
 
-		signal.Notify(a.signalCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		// signal.Notify(a.signalCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 		go a.work()
 		go a.receive()
@@ -245,8 +245,8 @@ func (a *OKWSAgent) work() {
 			a.handleEventResponse(evtR)
 		case tb := <-a.wsTbCh:
 			a.handleTableResponse(tb)
-		case <-a.signalCh:
-			break
+		// case <-a.signalCh:
+		// 	break
 		case err := <-a.errCh:
 			DefaultDataCallBack(err)
 			break
