@@ -6,9 +6,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 /*
@@ -32,15 +36,33 @@ type ApiMessage struct {
  Get a http client
 */
 func NewClient(config Config) *Client {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("recovered from ", r)
+			debug.PrintStack()
+		}
+	}()
 	var client Client
 	client.Config = config
 	timeout := config.TimeoutSecond
 	if timeout <= 0 {
 		timeout = 30
 	}
-	client.HttpClient = &http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
+
+	// create a socks5 dialer
+	dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:1080", nil, proxy.Direct)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
+		os.Exit(1)
 	}
+	// setup a http client
+	httpTransport := &http.Transport{}
+	client.HttpClient = &http.Client{
+		Timeout:   time.Duration(timeout) * time.Second,
+		Transport: httpTransport,
+	}
+	// set our socks5 as the dialer
+	httpTransport.Dial = dialer.Dial
 	return &client
 }
 
