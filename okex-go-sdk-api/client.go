@@ -57,10 +57,17 @@ func NewClient(config Config) *Client {
 	}
 	// setup a http client
 	httpTransport := &http.Transport{}
-	client.HttpClient = &http.Client{
-		Timeout:   time.Duration(timeout) * time.Second,
-		Transport: httpTransport,
+	if config.IsProxy {
+		client.HttpClient = &http.Client{
+			Timeout:   time.Duration(timeout) * time.Second,
+			Transport: httpTransport,
+		}
+	} else {
+		client.HttpClient = &http.Client{
+			Timeout: time.Duration(timeout) * time.Second,
+		}
 	}
+
 	// set our socks5 as the dialer
 	httpTransport.Dial = dialer.Dial
 	return &client
