@@ -27,5 +27,6 @@ type Config struct {
 	// Internationalization @see file: constants.go
 	I18n string
 
-	IsProxy bool
+	IsProxy   bool
+	ProxyHost string
 }

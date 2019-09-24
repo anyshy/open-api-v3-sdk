@@ -50,7 +50,7 @@ func NewClient(config Config) *Client {
 	}
 
 	// create a socks5 dialer
-	dialer, err := proxy.SOCKS5("tcp", "127.0.0.1:1080", nil, proxy.Direct)
+	dialer, err := proxy.SOCKS5("tcp", config.ProxyHost, nil, proxy.Direct)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "can't connect to the proxy:", err)
 		os.Exit(1)
