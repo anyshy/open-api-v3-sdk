@@ -2,7 +2,6 @@ package okex
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"testing"
 )
 
@@ -21,7 +20,7 @@ func TestGetMarginAccounts(t *testing.T) {
 func TestGetMarginAccountsByInstrument(t *testing.T) {
 	c := NewTestClient()
 	ac, err := c.GetMarginAccountsByInstrument(CurrencyPairInstrument)
-	require.True(t, err == nil, err)
+	assert.True(t, err == nil)
 	jstr, _ := Struct2JsonString(ac)
 	println(jstr)
 }
@@ -68,40 +67,24 @@ func TestGetMarginAccountsBorrowedByInstrumentId(t *testing.T) {
 
 func TestGetMarginOrders(t *testing.T) {
 	c := NewTestClient()
-	states := []string{
-		"-2",
-		"-1",
-		"0",
-		"1",
-		"2",
-		"3",
-		"4",
-		"6",
-		"7",
-	}
-	for _, s := range states {
-		ac, err := c.GetMarginOrders(CurrencyPairInstrument, s, nil)
-		assert.True(t, err == nil && ac != nil)
-		jstr, _ := Struct2JsonString(ac)
-		println(jstr)
-
-	}
+	ac, err := c.GetMarginOrders(CurrencyPairInstrument, nil)
+	assert.True(t, err == nil && ac != nil)
+	jstr, _ := Struct2JsonString(ac)
+	println(jstr)
 }
 
 func TestGetMarginOrdersById(t *testing.T) {
 	c := NewTestClient()
 	ac, err := c.GetMarginOrdersById(CurrencyPairInstrument, "123456")
-	require.True(t, err == nil, err)
-	require.True(t, ac != nil, ac)
+	assert.True(t, err == nil && ac != nil)
 	jstr, _ := Struct2JsonString(ac)
 	println(jstr)
 }
 
 func TestGetMarginOrdersPending(t *testing.T) {
 	c := NewTestClient()
-	ac, err := c.GetMarginOrdersPending(InstrumentId, nil)
-	require.True(t, err == nil, err)
-	require.True(t, ac != nil, ac)
+	ac, err := c.GetMarginOrdersPending(nil)
+	assert.True(t, err == nil && ac != nil)
 	jstr, _ := Struct2JsonString(ac)
 	println(jstr)
 }
@@ -116,7 +99,7 @@ func TestGetMarginFills(t *testing.T) {
 
 func TestPostMarginAccountsBorrow(t *testing.T) {
 	c := NewTestClient()
-	ac, err := c.PostMarginAccountsBorrow(CurrencyPairInstrument, "usdt", "1")
+	ac, err := c.PostMarginAccountsBorrow(CurrencyPairInstrument, "usdt", "0.1")
 	assert.True(t, err == nil && ac != nil)
 	jstr, _ := Struct2JsonString(ac)
 	println(jstr)
@@ -124,7 +107,7 @@ func TestPostMarginAccountsBorrow(t *testing.T) {
 
 func TestPostMarginAccountsRepayment(t *testing.T) {
 	c := NewTestClient()
-	ac, err := c.PostMarginAccountsRepayment(CurrencyPairInstrument, "usdt", "1", nil)
+	ac, err := c.PostMarginAccountsRepayment(CurrencyPairInstrument, "usdt", "0.1", nil)
 	assert.True(t, err == nil && ac != nil)
 	jstr, _ := Struct2JsonString(ac)
 	println(jstr)
@@ -137,19 +120,19 @@ func TestPostMarginOrders_AllInOne(t *testing.T) {
 	optionals["type"] = "limit"
 	optionals["price"] = "100"
 	optionals["size"] = "0.01"
+	optionals["margin_trading"] = "2"
 
-	r, err := c.PostMarginOrders("sell", CurrencyPairInstrument, "2", &optionals)
-	require.True(t, r != nil, r)
-	require.True(t, err == nil, err)
+	r, err := c.PostMarginOrders("sell", CurrencyPairInstrument, &optionals)
+	assert.True(t, r != nil && err == nil)
 	jstr, _ := Struct2JsonString(r)
 	println(jstr)
 
 	orderId := (*r)["order_id"].(string)
 	r, err = c.PostMarginCancelOrdersById(CurrencyPairInstrument, orderId)
-	require.True(t, r != nil, r)
-	require.True(t, err == nil, err)
+	assert.True(t, r != nil && err == nil)
 	jstr, _ = Struct2JsonString(r)
 	println(jstr)
+
 }
 
 func TestPostMarginBatchOrders(t *testing.T) {

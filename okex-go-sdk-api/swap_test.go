@@ -10,10 +10,10 @@ package okex
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestGetSwapInstrumentPosition(t *testing.T) {
@@ -139,8 +139,7 @@ func simpleAssertTrue(result interface{}, err error, t *testing.T, doprint bool)
 	if doprint {
 		fmt.Fprintf(os.Stderr, "Result: %+v, Error: %+v", result, err)
 	}
-	require.True(t, result != nil, result)
-	require.True(t, err == nil, err)
+	assert.True(t, result != nil && err == nil)
 	return result != nil && err == nil
 }
 
@@ -166,7 +165,7 @@ func TestClient_PrivateAPI(t *testing.T) {
 
 	r5, err := c.PostSwapAccountsLeverage(instrumentId, "50", "3")
 	simpleAssertTrue(r5, err, t, false)
-	//require.True(t, int(r5.Code) > 30000, r5)
+	assert.True(t, int(r5.Code) > 30000)
 
 	r6, err := c.GetSwapAccountLedger(instrumentId, nil)
 	simpleAssertTrue(r6, err, t, false)
@@ -177,43 +176,37 @@ func TestClient_PrivateAPI(t *testing.T) {
 	order.MatchPrice = "1"
 	order.Price = "100"
 	r7, err := c.PostSwapOrder(instrumentId, &order)
-	fmt.Printf("%+v, %+v\n", r7, err)
-	//simpleAssertTrue(r7, err, t, false)
+	simpleAssertTrue(r7, err, t, false)
+
 	order2 := BasePlaceOrderInfo{}
 	order2.Size = "1"
 	order2.Type = "1"
 	order2.MatchPrice = "1"
 	order2.Price = "200"
 	r8, err := c.PostSwapOrders(instrumentId, []*BasePlaceOrderInfo{&order, &order2})
-	fmt.Printf("%+v, %+v\n", r8, err)
-	//simpleAssertTrue(r8, err, t, false)
+	simpleAssertTrue(r8, err, t, false)
 
 	r81, err := c.GetSwapOrderByOrderId(instrumentId, r8.OrderInfo[0].OrderId)
-	fmt.Printf("%+v, %+v\n", r81, err)
-	//simpleAssertTrue(r81, err, t, false)
+	simpleAssertTrue(r81, err, t, false)
 
 	orderId := r8.OrderInfo[0].OrderId
 	r9, err := c.PostSwapCancelOrder(instrumentId, orderId)
-	fmt.Printf("%+v, %+v\n", r9, err)
-	//simpleAssertTrue(r9, err, t, false)
+	simpleAssertTrue(r9, err, t, false)
 
 	ids := []string{r8.OrderInfo[0].OrderId, r8.OrderInfo[1].OrderId}
 	r10, err := c.PostSwapBatchCancelOrders(instrumentId, ids)
-	fmt.Printf("%+v, %+v\n", r10, err)
-	//simpleAssertTrue(r10, err, t, false)
+	simpleAssertTrue(r10, err, t, false)
 
 	params := map[string]string{}
 	params["status"] = "1"
 	params["from"] = "1"
 	params["to"] = "4"
 	params["limit"] = "100"
-	r11, err := c.GetSwapOrderByInstrumentId(instrumentId, "7", params)
-	fmt.Printf("%+v, %+v\n", r11, err)
-	//simpleAssertTrue(r11, err, t, false)
+	r11, err := c.GetSwapOrderByInstrumentId(instrumentId, params)
+	simpleAssertTrue(r11, err, t, false)
 
 	r12, err := c.GetSwapFills(instrumentId, orderId, nil)
-	fmt.Printf("%+v, %+v\n", r12, err)
-	//simpleAssertTrue(r12, err, t, false)
+	simpleAssertTrue(r12, err, t, false)
 }
 
 func cleanUpOrders(c *Client, instrumentId string) {
@@ -222,34 +215,32 @@ func cleanUpOrders(c *Client, instrumentId string) {
 	params["status"] = "6"
 	params["limit"] = "100"
 	params["from"] = Int2String(currentPage)
+	orders := []string{}
 
-	// Fore. 20190826
-	//orders := []string{}
-	//
-	//rNotDealed, _ := c.GetSwapOrderByInstrumentId(instrumentId, "7", params)
-	//for rNotDealed != nil && len(*rNotDealed) > 0 {
-	//	for i := 0; i < len(*rNotDealed); i++ {
-	//		if rNotDealed.OrderInfo[i].OrderId != "" && len(rNotDealed.OrderInfo[i].OrderId) > 0 {
-	//			orders = append(orders, rNotDealed.OrderInfo[i].OrderId)
-	//		}
-	//	}
-	//
-	//	delta := 10
-	//	for i := 0; i < len(orders); i = i + delta {
-	//		upper := i + delta
-	//		if upper > len(orders)-1 {
-	//			upper = len(orders) - 1
-	//		}
-	//		c.PostSwapBatchCancelOrders(instrumentId, orders[i:upper])
-	//		time.Sleep(time.Millisecond * 200)
-	//		println(i, i+delta)
-	//	}
-	//
-	//	currentPage += 1
-	//	params["from"] = Int2String(currentPage)
-	//
-	//	rNotDealed, _ = c.GetSwapOrderByInstrumentId(instrumentId, "7", params)
-	//}
+	rNotDealed, _ := c.GetSwapOrderByInstrumentId(instrumentId, params)
+	for rNotDealed != nil && len(rNotDealed.OrderInfo) > 0 {
+		for i := 0; i < len(rNotDealed.OrderInfo); i++ {
+			if rNotDealed.OrderInfo[i].OrderId != "" && len(rNotDealed.OrderInfo[i].OrderId) > 0 {
+				orders = append(orders, rNotDealed.OrderInfo[i].OrderId)
+			}
+		}
+
+		delta := 10
+		for i := 0; i < len(orders); i = i + delta {
+			upper := i + delta
+			if upper > len(orders)-1 {
+				upper = len(orders) - 1
+			}
+			c.PostSwapBatchCancelOrders(instrumentId, orders[i:upper])
+			time.Sleep(time.Millisecond * 200)
+			println(i, i+delta)
+		}
+
+		currentPage += 1
+		params["from"] = Int2String(currentPage)
+
+		rNotDealed, _ = c.GetSwapOrderByInstrumentId(instrumentId, params)
+	}
 }
 
 func TestClient_Err(t *testing.T) {

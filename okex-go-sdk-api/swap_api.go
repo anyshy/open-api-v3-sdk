@@ -16,13 +16,13 @@ import (
 获取某个合约的持仓信息
 GET /api/swap/v3/<instrument_id>/position
 */
-func (client *Client) GetSwapPositionByInstrument(instrumentId string) (map[string]interface{}, error) {
+func (client *Client) GetSwapPositionByInstrument(instrumentId string) (*SwapPosition, error) {
 
-	sp := map[string]interface{}{}
+	sp := SwapPosition{}
 	if _, err := client.Request(GET, GetInstrumentIdUri(SWAP_INSTRUMENT_POSITION, instrumentId), nil, &sp); err != nil {
 		return nil, err
 	}
-	return sp, nil
+	return &sp, nil
 }
 
 /*
@@ -31,13 +31,13 @@ func (client *Client) GetSwapPositionByInstrument(instrumentId string) (map[stri
 限速规则：1次/10s
 GET /api/swap/v3/position
 */
-func (client *Client) GetSwapPositions() ([]map[string]interface{}, error) {
+func (client *Client) GetSwapPositions() (*SwapPositionList, error) {
 
-	sp := []map[string]interface{}{}
+	sp := SwapPositionList{}
 	if _, err := client.Request(GET, SWAP_POSITION, nil, &sp); err != nil {
 		return nil, err
 	}
-	return sp, nil
+	return &sp, nil
 }
 
 func (client *Client) getSwapAccounts(uri string) (*SwapAccounts, error) {
@@ -110,17 +110,17 @@ func (client *Client) PostSwapAccountsLeverage(instrumentId string, leverage str
 HTTP请求
 GET /api/swap/v3/accounts/<instrument_id>/ledger
 */
-func (client *Client) GetSwapAccountLedger(instrumentId string, optionalParams map[string]string) ([]map[string]string, error) {
+func (client *Client) GetSwapAccountLedger(instrumentId string, optionalParams map[string]string) (*SwapAccountsLedgerList, error) {
 	baseUri := GetInstrumentIdUri(SWAP_ACCOUNTS_LEDGER, instrumentId)
 	uri := baseUri
 	if optionalParams != nil {
 		uri = BuildParams(baseUri, optionalParams)
 	}
-	ll := []map[string]string{}
+	ll := SwapAccountsLedgerList{}
 	if _, err := client.Request(GET, uri, nil, &ll); err != nil {
 		return nil, err
 	}
-	return ll, nil
+	return &ll, nil
 }
 
 /*
@@ -197,27 +197,15 @@ GET /api/swap/v3/orders/<instrument_id>
 请求示例
 GET /api/swap/v3/orders/BTC-USD-SWAP?status=2&from=4&limit=30
 */
-func (client *Client) GetSwapOrderByInstrumentId(instrumentId, state string, paramMap map[string]string) (*map[string]interface{}, error) {
-	if paramMap["status"] == "" || len(instrumentId) == 0 {
+func (client *Client) GetSwapOrderByInstrumentId(instrumentId string, paramMap map[string]string) (*SwapOrdersInfo, error) {
+	if paramMap["state"] == "" || len(instrumentId) == 0 {
 		return nil, errors.New("Request Parameter's not correct, instrument_id and status is required.")
 	}
 
-	fullParams := NewParams()
-	fullParams["instrument_id"] = instrumentId
-	fullParams["state"] = state
-
-	if paramMap != nil && len(paramMap) > 0 {
-		for k, v := range paramMap {
-			if len(v) > 0 {
-				fullParams[k] = v
-			}
-		}
-	}
-
 	baseUri := GetInstrumentIdUri(SWAP_INSTRUMENT_ORDER_LIST, instrumentId)
-	uri := BuildParams(baseUri, fullParams)
-
-	soi := map[string]interface{}{}
+	kvParams := BuildOrderParams(paramMap)
+	uri := baseUri + "?" + kvParams
+	soi := SwapOrdersInfo{}
 
 	if _, err := client.Request(GET, uri, nil, &soi); err != nil {
 		return nil, err
@@ -270,25 +258,23 @@ GET /api/swap/v3/fills
 请求示例
 GET /api/swap/v3/fills?order_id=64-2b-16122f931-3&instrument_id=BTC-USD-SWAP&from=1&limit=50(返回BTC-USD-SWAP中order_id为64-2b-16122f931-3的订单中第1页前50笔成交信息)
 */
-func (client *Client) GetSwapFills(instrumentId string, orderId string, options map[string]string) ([]interface{}, error) {
+func (client *Client) GetSwapFills(instrumentId string, orderId string, options map[string]string) (interface{}, error) {
 	m := make(map[string]string)
 	m["instrument_id"] = instrumentId
 	m["order_id"] = orderId
 
-	for k, v := range options {
-		if v != "" && len(v) > 0 {
-			m[k] = v
-		}
-	}
+	m["from"] = options["from"]
+	m["to"] = options["to"]
+	m["limit"] = options["limit"]
 
 	uri := BuildParams(SWAP_FILLS, m)
-	sfi := []interface{}{}
+	sfi := SwapFillsInfo{}
 
 	if _, err := client.Request(GET, uri, nil, &sfi); err != nil {
 		return nil, err
 	}
 
-	return sfi, nil
+	return &sfi, nil
 }
 
 /*
